@@ -16,10 +16,14 @@ public class ReadListenerImpl implements ReadListener {
         this.asyncContext = asyncContext;
     }
 
+    private String threadId() {
+        return "[Thread " + Thread.currentThread().getId() + "] ";
+    }
+
     @Override
     public void onDataAvailable() throws IOException {
         synchronized (input) {
-            System.out.println("ReadListenerImpl: onDataAvailable");
+            System.out.println(threadId() + "ReadListenerImpl: onDataAvailable");
             (new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -43,11 +47,11 @@ public class ReadListenerImpl implements ReadListener {
                         }
 
                         read += localRead;
-                        System.out.println("read till now: " + read);
+                        System.out.println(threadId() + "read till now: " + read);
                     }
                 }
             })).start();
-            System.out.println("onDataAvailable end");
+            System.out.println(threadId() + "onDataAvailable end");
         }
     }
 
@@ -58,7 +62,7 @@ public class ReadListenerImpl implements ReadListener {
     @Override
     public void onAllDataRead() throws IOException {
         synchronized (input) {
-            System.out.println("onAllDataRead");
+            System.out.println(threadId() + "onAllDataRead");
             asyncContext.complete();
         }
     }
