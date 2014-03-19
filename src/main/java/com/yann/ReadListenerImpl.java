@@ -9,7 +9,7 @@ public class ReadListenerImpl implements ReadListener {
 
     private final ServletInputStream input;
     private final AsyncContext asyncContext;
-    private int read = 0;
+    private volatile int read = 0;
 
     public ReadListenerImpl(ServletInputStream input, AsyncContext asyncContext) {
         this.input = input;
@@ -18,29 +18,37 @@ public class ReadListenerImpl implements ReadListener {
 
     @Override
     public void onDataAvailable() throws IOException {
-        System.out.println("ReadListenerImpl: onDataAvailable");
-        (new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    // simulate wait to check back pressure
-                    Thread.sleep((int)(Math.random() * 200));
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                int len = -1;
-                byte b[] = new byte[1024];
-                try {
-                    while (input.isReady() && (len = input.read(b)) != -1) {
-                        read += len;
+        synchronized (input) {
+            System.out.println("ReadListenerImpl: onDataAvailable");
+            (new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    synchronized (input) {
+                        int len = -1;
+                        int localRead = 0;
+                        byte b[] = new byte[1024];
+                        try {
+                            while (input.isReady() && (len = input.read(b)) != -1) {
+                                localRead += len;
+                            }
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+
+                        try {
+                            // simulate wait to check back pressure
+                            Thread.sleep((int) (Math.random() * 200));
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+
+                        read += localRead;
+                        System.out.println("read till now: " + read);
                     }
-                    System.out.println("read till now: " + read);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
                 }
-            }
-        })).start();
-        System.out.println("onDataAvailable end");
+            })).start();
+            System.out.println("onDataAvailable end");
+        }
     }
 
     public int getRead() {
@@ -49,8 +57,10 @@ public class ReadListenerImpl implements ReadListener {
 
     @Override
     public void onAllDataRead() throws IOException {
-        System.out.println("onAllDataRead");
-        asyncContext.complete();
+        synchronized (input) {
+            System.out.println("onAllDataRead");
+            asyncContext.complete();
+        }
     }
 
     @Override
