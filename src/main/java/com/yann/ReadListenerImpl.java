@@ -26,12 +26,6 @@ public class ReadListenerImpl implements ReadListener {
         (new Thread(new Runnable() {
             @Override
             public void run() {
-                try {
-                    // simulate wait for database to be ready
-                    Thread.sleep((int) (Math.random() * 200));
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
                 int len = -1;
                 int localRead = 0;
                 byte b[] = new byte[1024];
@@ -41,13 +35,6 @@ public class ReadListenerImpl implements ReadListener {
                     }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
-                }
-
-                try {
-                    // simulate wait for intensive take for read chunk
-                    Thread.sleep((int) (Math.random() * 200));
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
                 }
 
                 read += localRead;
